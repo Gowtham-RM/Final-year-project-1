@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paddy Disease Detector</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; text-align: center; padding: 50px; }
+        .container { background-color: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        h1 { color: #2c3e50; }
+        input[type="file"] { margin: 20px 0; padding: 10px; }
+        button { background-color: #27ae60; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #2ecc71; }
+        .result { margin-top: 30px; padding: 20px; background-color: #e8f8f5; border-radius: 8px; }
+        .warning { color: #c0392b; font-weight: bold; }
+        img { max-width: 100%; border-radius: 8px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌾 Paddy Disease Detector</h1>
+        <p>Upload a clear, close-up photo of a rice leaf to identify potential diseases.</p>
+        
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" accept="image/*" required>
+            <br>
+            <button type="submit">Analyze Leaf</button>
+        </form>
+
+        {% if prediction %}
+            <div class="result">
+                <h2>Prediction: {{ prediction }}</h2>
+                <h3>Confidence: {{ confidence }}%</h3>
+                
+                {% if confidence < 75.0 %}
+                    <p class="warning">⚠️ Confidence is low. Ensure the image is well-lit and focuses on a single leaf.</p>
+                {% endif %}
+                
+                <img src="{{ uploaded_image }}" alt="Uploaded Paddy Leaf">
+            </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>
