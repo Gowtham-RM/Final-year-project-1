@@ -2,69 +2,106 @@ from flask import Flask, render_template, request, redirect
 import os
 import numpy as np
 import cv2
+
 from tensorflow.keras.models import load_model
-from tensorflow.keras.applications.densenet import preprocess_input
+from tensorflow.keras.applications.efficientnet import preprocess_input
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'static/uploads/'
 
-# Create upload folder if it doesn't exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+UPLOAD_FOLDER = "static/uploads"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# 1. Load your trained DenseNet model
-MODEL_PATH = 'densenet_best.keras'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# --------------------------------------------------
+# Load EfficientNet Model
+# --------------------------------------------------
+
+MODEL_PATH = "efficientnet_phase2_best.keras"
+
 model = load_model(MODEL_PATH)
 
-# 2. Define the exact 10 classes
+# --------------------------------------------------
+# Class Labels
+# --------------------------------------------------
+
 class_labels = [
-    'bacterial_leaf_blight', 'bacterial_leaf_streak', 'bacterial_panicle_blight',
-    'blast', 'brown_spot', 'dead_heart', 'downy_mildew', 'hispa', 'normal', 'tungro'
+    "bacterial_leaf_blight",
+    "bacterial_leaf_streak",
+    "bacterial_panicle_blight",
+    "blast",
+    "brown_spot",
+    "dead_heart",
+    "downy_mildew",
+    "hispa",
+    "normal",
+    "tungro"
 ]
 
+# --------------------------------------------------
+# Prediction Function
+# --------------------------------------------------
+
 def predict_image(image_path):
-    """Processes the image and runs the DenseNet model"""
-    # Read and resize image
-    img = cv2.imread(image_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, (224, 224))
-    
-    # Expand dimensions and apply DenseNet preprocessing
-    img_array = np.expand_dims(img, axis=0)
-    img_processed = preprocess_input(img_array)
-    
-    # Predict
-    predictions = model.predict(img_processed)
-    confidence = np.max(predictions) * 100
-    predicted_class = class_labels[np.argmax(predictions)]
-    
+
+    image = cv2.imread(image_path)
+
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    image = cv2.resize(image, (224,224))
+
+    image = np.array(image, dtype=np.float32)
+
+    image = np.expand_dims(image, axis=0)
+
+    image = preprocess_input(image)
+
+    prediction = model.predict(image, verbose=0)
+
+    predicted_index = np.argmax(prediction)
+
+    confidence = float(np.max(prediction))*100
+
+    predicted_class = class_labels[predicted_index]
+
     return predicted_class, confidence
 
-# 3. Create the Web Route
-@app.route('/', methods=['GET', 'POST'])
+
+# --------------------------------------------------
+# Home Page
+# --------------------------------------------------
+
+@app.route("/", methods=["GET","POST"])
+
 def index():
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            return redirect(request.url)
-            
-        file = request.files['file']
-        if file.filename == '':
+
+    if request.method=="POST":
+
+        if "file" not in request.files:
             return redirect(request.url)
 
-        if file:
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(filepath)
-            
-            predicted_class, confidence = predict_image(filepath)
-            
-            # Format the output clearly
-            formatted_prediction = predicted_class.replace('_', ' ').title()
-            
-            return render_template('index.html', 
-                                   uploaded_image=filepath, 
-                                   prediction=formatted_prediction, 
-                                   confidence=round(confidence, 2))
-                                   
-    return render_template('index.html')
+        file=request.files["file"]
 
-if __name__ == '__main__':
+        if file.filename=="":
+            return redirect(request.url)
+
+        filepath=os.path.join(app.config["UPLOAD_FOLDER"],file.filename)
+
+        file.save(filepath)
+
+        prediction,confidence=predict_image(filepath)
+
+        prediction=prediction.replace("_"," ").title()
+
+        return render_template(
+            "index.html",
+            uploaded_image=filepath,
+            prediction=prediction,
+            confidence=round(confidence,2)
+        )
+
+    return render_template("index.html")
+
+
+if __name__=="__main__":
     app.run(debug=True)
